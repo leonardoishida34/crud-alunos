@@ -1,37 +1,37 @@
-services:
+services: # Bloco principal onde declaramos os containers (serviços) da aplicação
 
-  app:
-    build: ./app
-    container_name: crud-app
+  app: # Serviço responsável por rodar a aplicação PHP
+    build: ./app # Constrói a imagem a partir do Dockerfile presente na pasta ./app (usamos build em vez de imagem pronta pois precisamos instalar a extensão de MySQL no PHP)
+    container_name: crud-app # Define um nome fixo para o container, facilitando identificá-lo em comandos como "docker logs crud-app"
     ports:
-      - "8080:80"
-    environment:
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: crud_alunos
+      - "8080:80" # Mapeia a porta 80 do container (onde o Apache escuta) para a porta 8080 da máquina host, permitindo acessar via navegador
+    environment: # Bloco de variáveis de ambiente que o código PHP usa para se conectar ao banco de dados
+      DB_HOST: db # Nome do serviço do banco de dados; o Docker resolve esse nome automaticamente pela rede interna, sem precisar de IP fixo
+      DB_PORT: 3306 # Porta padrão em que o MySQL escuta dentro do container
+      DB_USER: root # Usuário do banco de dados usado pela aplicação para se autenticar
+      DB_PASSWORD: root # Senha do usuário do banco de dados
+      DB_NAME: crud_alunos # Nome do banco de dados que a aplicação vai utilizar
     volumes:
-      - ./app/src:/var/www/html
+      - ./app/src:/var/www/html # Monta a pasta local app/src dentro do container, refletindo qualquer alteração no código PHP sem precisar reconstruir a imagem
     depends_on:
-      - db
+      - db # Garante que o container "db" seja iniciado antes do container "app" (não garante que o MySQL já esteja pronto para aceitar conexões, apenas que o processo foi iniciado)
     networks:
-      - crud-network
+      - crud-network # Conecta este serviço à rede personalizada, permitindo comunicação com o serviço "db" pelo nome
 
-  db:
-    image: mysql:8.0
-    container_name: crud-db
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: crud_alunos
+  db: # Serviço responsável por rodar o banco de dados MySQL
+    image: mysql:8.0 # Utiliza a imagem oficial do MySQL, versão 8.0, baixada diretamente do Docker Hub
+    container_name: crud-db # Define um nome fixo para o container do banco de dados
+    environment: # Variáveis de ambiente usadas pela própria imagem oficial do MySQL para se configurar na primeira inicialização
+      MYSQL_ROOT_PASSWORD: root # Define a senha do usuário root do MySQL
+      MYSQL_DATABASE: crud_alunos # Faz o MySQL criar automaticamente esse banco de dados assim que o container sobe pela primeira vez
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql # Associa o volume nomeado "db_data" à pasta interna onde o MySQL guarda seus dados, garantindo que eles não sejam perdidos ao reiniciar ou recriar o container
     networks:
-      - crud-network
+      - crud-network # Conecta este serviço à mesma rede personalizada do "app", permitindo a comunicação entre os dois containers
 
-volumes:
-  db_data:
+volumes: # Bloco de declaração dos volumes nomeados usados pelo projeto
+  db_data: # Volume persistente que armazenará fisicamente os arquivos de dados do MySQL, fora do ciclo de vida do container
 
-networks:
-  crud-network:
-    driver: bridge
+networks: # Bloco de declaração das redes personalizadas usadas pelo projeto
+  crud-network: # Nome da rede personalizada criada exclusivamente para este projeto
+    driver: bridge # Define o tipo de rede como "bridge", permitindo que os containers se enxerguem e se comuniquem entre si pelo nome do serviço (ex.: "db"), sem precisar de IP fixo
